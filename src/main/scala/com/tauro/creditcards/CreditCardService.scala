@@ -1,32 +1,38 @@
 package com.tauro.creditcards
 
-import io.circe.Json
-import io.circe.syntax._
-import com.tauro.creditcards.Protocol._
+import cats.effect.Sync
+import com.tauro.creditcards.CreditCardProtocol._
+import cats.implicits._
 
-trait CreditCardService {
-  def creditCards(cs: Json, sc: Json): Json
+trait CreditCardService[F[_]] {
+  def fetchCards(req: CreditCardRequest): F[List[CreditCard]]
 }
 
-class CreditCardServiceImpl extends CreditCardService {
+class CreditCardServiceImpl[F[_]: Sync](creditCardGateway: CreditCardGateway[F]) extends CreditCardService[F] {
 
-  override def creditCards(cs: Json, sc: Json): Json = {
-    val csList: List[CsCardResponse] = cs.as[List[CsCardResponse]].getOrElse(List.empty)
-    val scList: List[ScoredCardsResponse] = sc.as[List[ScoredCardsResponse]].getOrElse(List.empty)
-    val creditCardCsList: List[CreditCard] = csList.map(r => CreditCard(
-      provider = "CSCards", name = r.cardName, apr = r.apr, cardScore = CsScore(r)))
-    val creditCardScList: List[CreditCard] = scList.map(r => CreditCard(
-      provider = "ScoredCards", name = r.card, apr = r.apr, cardScore = ScScore(r)))
-    val combinedList: List[CreditCard] = creditCardCsList ::: creditCardScList
-    val sortList: List[CreditCard] = combinedList.sortWith(sortingScore)
-    sortList.asJson
+  override def fetchCards(req: CreditCardRequest): F[List[CreditCard]] = {
+    creditCardGateway.csCards(req)
+    for {
+      csCards <- creditCardGateway.csCards(req)
+      scoredCards <- creditCardGateway.scoredCards(req)
+    } yield creditCards(csCards, scoredCards)
   }
 
-  private def CsScore(cs: CsCardResponse): Double = {
+  private def creditCards(csCards: List[CsCardResponse], scoredCards: List[ScoredCardsResponse]): List[CreditCard] = {
+    (handleCsCards(csCards) ::: handleScoredCards(scoredCards)).sortWith(sortingScore)
+  }
+
+  private def handleCsCards(csCards: List[CsCardResponse]): List[CreditCard] =
+    csCards.map(r => CreditCard(provider = "CSCards", name = r.cardName, apr = r.apr, cardScore = csScore(r)))
+
+  private def handleScoredCards(scoredCards: List[ScoredCardsResponse]): List[CreditCard] =
+    scoredCards.map(r => CreditCard(provider = "ScoredCards", name = r.card, apr = r.apr, cardScore = scoredCardsScore(r)))
+
+  private def csScore(cs: CsCardResponse): Double = {
     cs.eligibility * (Math.pow(1 / cs.apr, 2))
   }
 
-  private def ScScore(sc: ScoredCardsResponse): Double = {
+  private def scoredCardsScore(sc: ScoredCardsResponse): Double = {
     val eligibility: Double = sc.approvalRating*10
     eligibility * (Math.pow(1 / sc.apr, 2))
   }
@@ -36,4 +42,9 @@ class CreditCardServiceImpl extends CreditCardService {
   }
 }
 
-// todo remove getOrElse
+// todo cats effect having to use both sync and concurrent - what does this mean
+// todo what is adaptError and how do we want to handle errors here? What are partial functions
+// todo start service with bash script
+// todo make it easy to add another partner - generics?
+// todo how to run python tests
+// todo review tech test critera on notion

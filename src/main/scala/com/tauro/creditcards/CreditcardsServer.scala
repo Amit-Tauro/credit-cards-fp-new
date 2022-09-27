@@ -14,15 +14,15 @@ object CreditcardsServer {
   def stream[F[_]: Async]: Stream[F, Nothing] = {
     for {
       client <- Stream.resource(EmberClientBuilder.default[F].build)
-      helloWorldAlg = HelloWorld.impl[F]
-      creditCardAlg = CreditCards.impl[F](client)
+      creditCardGateway = new CreditCardGatewayImpl[F](client)
+      creditCardService = new CreditCardServiceImpl[F](creditCardGateway)
 
       // Combine Service Routes into an HttpApp.
       // Can also be done via a Router if you
       // want to extract segments not checked
       // in the underlying routes.
       httpApp = (
-        CreditcardsRoutes.creditCardRoutes[F](creditCardAlg)
+        CreditcardsRoutes.creditCardRoutes[F](creditCardService)
       ).orNotFound
 
       // With Middlewares in place
