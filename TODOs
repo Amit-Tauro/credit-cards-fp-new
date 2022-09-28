@@ -1,0 +1,47 @@
+TODO cats effect having to use both sync and concurrent - what does this mean
+[FE] Doesn't mean anything, there is a hierarchy to these types which can be found here (I do not know it by heart)
+https://www.google.com/search?q=cats+hierarchy+scala&rlz=1C5GCEM_enGB1001GB1001&oq=cats+hierarchy+scala&aqs=chrome.0.69i59j0i390l2.3387j0j4&sourceid=chrome&ie=UTF-8#imgrc=IPtFKgtDqoTFFM
+You can see Sync has all the functionalities that Concurrent provides, so it's fine
+
+I need to look more into this
+TODO what is adaptError and how do we want to handle errors here? What are partial functions
+[FE] partial functions are functions that are only applied to part of tall the possible inputs you can use. For example
+def myMethodTwo: PartialFunction[Int, Int] = {
+  case 2 => 5
+  case 6 => 3
+}
+
+This is equivalent to:
+def myMethod(n: Int): Int = n match {
+  case 2 => 5
+  case 6 => 3
+}
+
+But PartialFunction provides a bunch of other functionalities, like chaining and isDefined
+
+AdaptError is just a method to manipulate the Error you get by something you want (Idea here is you want
+your errors to be as clear as possible). You can see in the method signature, it takes a function that is Throwable => Throwable
+
+Two ways to handle errors here:
+1. We throw the error when at least one of the partners are down or returns an error
+2. You return whatever you have a print (or log) the error. So if one of the partner is down, but the other isn't,
+it will still return the results for that partner
+
+Which do you want to focus on?
+
+TODO start service with bash script
+[FE] Hint: Try and run your app from the terminal and then put that command in the start script. We can improve it from there!
+
+TODO make it easy to add another partner - generics?
+[FE] Yes or inheritance or type classes (need to check how that woukd work exactly)
+
+TODO how to run python tests
+[FE] see https://github.com/ClearScore/be-tech-test-api-tests (we can go over this together)
+
+TODO review tech test criteria on notion
+[FE] see https://www.notion.so/Technical-Test-Expectations-2781cdfb810445b997627292617c7829
+
+[FE] TODO What would happen if partners were to change their endpoints? Can you think of a way to avoid scala code change?
+[FE] TODO How to show only 3 decimals
+[FE] TODO Scaling needs to be corrected (off by 1 zero)
+[FE] TODO Add logging
