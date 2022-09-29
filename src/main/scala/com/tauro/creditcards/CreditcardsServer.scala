@@ -3,6 +3,8 @@ package com.tauro.creditcards
 import cats.effect.{Async, Resource}
 import cats.syntax.all._
 import com.comcast.ip4s._
+import com.tauro.creditcards.http.CreditcardsRoutes
+import com.tauro.creditcards.service.CreditCardServiceImpl
 import fs2.Stream
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
@@ -11,11 +13,11 @@ import org.http4s.server.middleware.Logger
 
 object CreditcardsServer {
 
-  def stream[F[_]: Async]: Stream[F, Nothing] = {
+  def stream[F[_] : Async]: Stream[F, Nothing] = {
     for {
       client <- Stream.resource(EmberClientBuilder.default[F].build)
-      creditCardGateway = new CreditCardGatewayImpl[F](client)
-      creditCardService = new CreditCardServiceImpl[F](creditCardGateway)
+      //      creditCardGateway = new CreditCardGatewayImpl[F](client)
+      creditCardService = new CreditCardServiceImpl[F](client)
 
       // Combine Service Routes into an HttpApp.
       // Can also be done via a Router if you
@@ -23,7 +25,7 @@ object CreditcardsServer {
       // in the underlying routes.
       httpApp = (
         CreditcardsRoutes.creditCardRoutes[F](creditCardService)
-      ).orNotFound
+        ).orNotFound
 
       // With Middlewares in place
       finalHttpApp = Logger.httpApp(true, true)(httpApp)
@@ -34,7 +36,7 @@ object CreditcardsServer {
           .withPort(port"8080")
           .withHttpApp(finalHttpApp)
           .build >>
-        Resource.eval(Async[F].never)
+          Resource.eval(Async[F].never)
       )
     } yield exitCode
   }.drain
