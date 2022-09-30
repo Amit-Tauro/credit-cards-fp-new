@@ -16,13 +16,14 @@ object CreditcardsServer {
       client <- Stream.resource(EmberClientBuilder.default[F].build)
       creditCardGateway = new CreditCardGatewayImpl[F](client)
       creditCardService = new CreditCardServiceImpl[F](creditCardGateway)
+      creditCardRoutes = new CreditCardsRoutes[F](creditCardService)
 
       // Combine Service Routes into an HttpApp.
       // Can also be done via a Router if you
       // want to extract segments not checked
       // in the underlying routes.
       httpApp = (
-        CreditcardsRoutes.creditCardRoutes[F](creditCardService)
+        creditCardRoutes.creditCardRoutes
       ).orNotFound
 
       // With Middlewares in place

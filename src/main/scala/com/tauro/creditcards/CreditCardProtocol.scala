@@ -13,7 +13,10 @@ object CreditCardProtocol {
   final case class ScoredCardsResponse(card: String, apr: Double, approvalRating: Double)
   final case class CreditCard(provider: String, name: String, apr: Double, cardScore: Double)
 
-  implicit final val creditCardRequestDecoder: Decoder[CreditCardRequest] = deriveDecoder
+  implicit final val creditCardRequestDecoder: Decoder[CreditCardRequest] = deriveDecoder[CreditCardRequest].emap(creditCardRequest =>
+    if((creditCardRequest.creditScore >= 0 && creditCardRequest.creditScore <= 700 && creditCardRequest.salary >= 0)) Right(creditCardRequest)
+    else Left("credit score is out of range")
+  )
   implicit final val scoredCardsResponseDecoder: Decoder[ScoredCardsResponse] = deriveDecoder
 
   implicit final val csCardRequestEncoder: Encoder[CsCardRequest] = deriveEncoder
