@@ -1,8 +1,10 @@
 package com.tauro.creditcards
 
-import cats.effect.Sync
+import cats.effect.kernel.Concurrent
+//import cats.effect.Concurrent
 import com.tauro.creditcards.CreditCardProtocol._
 import cats.implicits._
+//import cats.effect.implicits._
 
 final case class GatewayError(msg: String) extends RuntimeException
 
@@ -10,13 +12,23 @@ trait CreditCardService[F[_]] {
   def fetchCards(req: CreditCardRequest): F[List[CreditCard]]
 }
 
-class CreditCardServiceImpl[F[_]: Sync](creditCardGateway: CreditCardGateway[F]) extends CreditCardService[F] {
+class CreditCardServiceImpl[F[_]: Concurrent](creditCardGateway: CreditCardGateway[F]) extends CreditCardService[F] {
 
   override def fetchCards(req: CreditCardRequest): F[List[CreditCard]] = {
+    val csCardsF = creditCardGateway.csCards(req)
+    val scoredCardsF = creditCardGateway.scoredCards(req)
+
     for {
-      csCards <- creditCardGateway.csCards(req)
-      scoredCards <- creditCardGateway.scoredCards(req)
+      csCards <- csCardsF
+      scoredCards <- scoredCardsF
     } yield sortCreditCards(csCards, scoredCards)
+
+    // todo timeout
+    // todo sortCreditCards use List and abstract Response => normalise response
+
+//    (creditCardGateway.csCards(req), creditCardGateway.scoredCards(req)).parMapN {
+//      (csCards, scoredCards) => sortCreditCards(csCards, scoredCards)
+//    }
   }
 
   private def sortCreditCards(csCards: Either[CsCardError, List[CsCardResponse]], scoredCards: Either[ScoredCardError, List[ScoredCardsResponse]]): List[CreditCard] = {
@@ -46,14 +58,10 @@ class CreditCardServiceImpl[F[_]: Sync](creditCardGateway: CreditCardGateway[F])
   }
 }
 
-// todo cats effect having to use both sync and concurrent - what does this mean
-// todo what is adaptError and how do we want to handle errors here? What are partial functions - done
+// todo cats effect having to use both sync and concurrent - what does this mean - use parallel
 // todo start service with bash script
 // todo make it easy to add another partner - generics?
-// todo how to run python tests - done
 // todo review tech test critera on notion
-// todo return error if both apis empty? - done
-// todo case _: InvalidMessageBodyFailure => BadRequest() why cant you just use InvalidMessageBodyFailure - done
 // todo what does blocking mean? How to make api requests parallel/ concurrent in functional?
 // todo why does repsonseLogger need Async and why does implicit circe need Concurrent?
 // todo having to recompile every time

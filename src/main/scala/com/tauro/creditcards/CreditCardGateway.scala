@@ -10,6 +10,7 @@ import org.http4s.Method._
 import com.tauro.creditcards.CreditCardProtocol._
 import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
 import org.http4s.client.middleware.ResponseLogger
+import scala.util.Properties.envOrElse
 
 final case class CsCardError(e: Throwable) extends RuntimeException
 
@@ -28,14 +29,30 @@ class CreditCardGatewayImpl[F[_]: Async](client: Client[F]) extends CreditCardGa
   private val clientWithLogging = ResponseLogger(true, true)(client)
 
   override def csCards(req: CreditCardRequest): F[Either[CsCardError, List[CsCardResponse]]] = {
-    val csReq: Request[F] = POST(uri"https://app.clearscore.com/api/global/backend-tech-test/v1/card").
-        withEntity(CsCardRequest(req.name, req.creditScore))
-    clientWithLogging.expect[List[CsCardResponse]](csReq).attempt.map(_.leftMap(e => CsCardError(e)))
+    val csCardsReq: Request[F] = POST(getCsCardsEndpoint).withEntity(CsCardRequest(req.name, req.creditScore))
+    println(System.currentTimeMillis())
+    clientWithLogging.expect[List[CsCardResponse]](csCardsReq).attempt.map(_.leftMap(e => CsCardError(e))).map { value =>
+      println(s"[${Thread.currentThread().getName}] $value")
+      value
+    }
   }
 
   override def scoredCards(req: CreditCardRequest): F[Either[ScoredCardError, List[ScoredCardsResponse]]] = {
-    val scReq: Request[F] = POST(uri"https://app.clearscore.com/api/global/backend-tech-test/v2/creditcard").withEntity(
-      ScoredCardsRequest(req.name, req.creditScore, req.salary))
-    clientWithLogging.expect[List[ScoredCardsResponse]](scReq).attempt.map(_.leftMap(e => ScoredCardError(e)))
+    val scoredCardsReq: Request[F] = POST(getScoredCardsEndpoint).withEntity(ScoredCardsRequest(req.name, req.creditScore, req.salary))
+    println(System.currentTimeMillis())
+    clientWithLogging.expect[List[ScoredCardsResponse]](scoredCardsReq).attempt.map(_.leftMap(e => ScoredCardError(e))).map { value =>
+      println(s"[${Thread.currentThread().getName}] $value")
+      value
+    }
+  }
+
+  private def getCsCardsEndpoint: Uri = {
+    Uri.fromString(envOrElse("CSCARDS_ENDPOINT", "https://app.clearscore.com/api/global/backend-tech-test/v1/card"))
+      .getOrElse(uri"https://app.clearscore.com/api/global/backend-tech-test/v1/card")
+  }
+
+  private def getScoredCardsEndpoint: Uri = {
+    Uri.fromString(envOrElse("SCOREDCARDS_ENDPOINT", "https://app.clearscore.com/api/global/backend-tech-test/v2/creditcard"))
+      .getOrElse(uri"https://app.clearscore.com/api/global/backend-tech-test/v2/creditcard")
   }
 }

@@ -6,5 +6,5 @@ export HTTP_PORT
 export CSCARDS_ENDPOINT
 export SCOREDCARDS_ENDPOINT
 
-sbt && run
+sbt "run"
 
