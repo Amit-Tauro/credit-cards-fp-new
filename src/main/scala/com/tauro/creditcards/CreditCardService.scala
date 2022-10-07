@@ -1,6 +1,6 @@
 package com.tauro.creditcards
 
-import cats.effect.kernel.Concurrent
+import cats.effect.kernel.{Concurrent, Sync}
 //import cats.effect.Concurrent
 import com.tauro.creditcards.CreditCardProtocol._
 import cats.implicits._
@@ -12,15 +12,17 @@ trait CreditCardService[F[_]] {
   def fetchCards(req: CreditCardRequest): F[List[CreditCard]]
 }
 
-class CreditCardServiceImpl[F[_]: Concurrent](creditCardGateway: CreditCardGateway[F]) extends CreditCardService[F] {
+class CreditCardServiceImpl[F[_]: Sync](creditCardGateway: CreditCardGateway[F]) extends CreditCardService[F] {
 
   override def fetchCards(req: CreditCardRequest): F[List[CreditCard]] = {
-    val csCardsF = creditCardGateway.csCards(req)
-    val scoredCardsF = creditCardGateway.scoredCards(req)
+//    val csCardsF = creditCardGateway.csCards(req)
+//    val scoredCardsF = creditCardGateway.scoredCards(req)
+
+    // todo call gateway with each of the apis
 
     for {
-      csCards <- csCardsF
-      scoredCards <- scoredCardsF
+      csCards <- creditCardGateway.csCards(req)
+      scoredCards <- creditCardGateway.scoredCards(req)
     } yield sortCreditCards(csCards, scoredCards)
 
     // todo timeout
@@ -58,8 +60,7 @@ class CreditCardServiceImpl[F[_]: Concurrent](creditCardGateway: CreditCardGatew
   }
 }
 
-// todo cats effect having to use both sync and concurrent - what does this mean - use parallel
-// todo start service with bash script
+// todo cats effect having to use both sync and concurrent - what does this mean - use parallel - done
 // todo make it easy to add another partner - generics?
 // todo review tech test critera on notion
 // todo what does blocking mean? How to make api requests parallel/ concurrent in functional?
