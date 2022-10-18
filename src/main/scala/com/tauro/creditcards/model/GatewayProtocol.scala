@@ -11,6 +11,6 @@ object GatewayProtocol {
 
   final case class ScoredCardsResponse(card: String, apr: Double, approvalRating: Double) extends GatewayResponse
 
-  implicit final val scoredCardsResponseDecoder: Decoder[ScoredCardsResponse] = deriveDecoder
-  implicit final val csCardResponseDecoder: Decoder[CsCardResponse] = deriveDecoder
+  implicit final val scoredCardsResponseDecoder: Decoder[List[ScoredCardsResponse]] = deriveDecoder
+  implicit final val csCardResponseDecoder: Decoder[List[CsCardResponse]] = deriveDecoder
 }

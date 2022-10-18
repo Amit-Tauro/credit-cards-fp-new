@@ -6,6 +6,7 @@ import com.tauro.creditcards.model.CreditCardProtocol._
 import cats.implicits._
 import cats.effect.implicits._
 import com.tauro.creditcards.model.GatewayProtocol._
+import org.http4s.circe.jsonOf
 
 final case class CreditCardApiError(msg: String) extends RuntimeException
 
@@ -13,12 +14,12 @@ trait CreditCardService[F[_]] {
   def fetchCards(req: CreditCardRequest): F[List[CreditCard]]
 }
 
-class CreditCardServiceImpl[F[_]: Concurrent](csCards: CsCards[F],
-                                        scoredCards: ScoredCards[F],
+class CreditCardServiceImpl[F[_]: Concurrent](csCards: CsCards[F, CsCardResponse],
+                                        scoredCards: ScoredCards[F, ScoredCardsResponse],
                                         transformerService: TransformerService) extends CreditCardService[F] {
 
   override def fetchCards(req: CreditCardRequest): F[List[CreditCard]] = {
-    (csCards.fetch(req), scoredCards.fetch(req)).parMapN {
+    (csCards.fetch(req)(jsonOf), scoredCards.fetch(req)(jsonOf)).parMapN {
       (csCardsResp, scoredCardsResp) => sortCreditCards(csCardsResp, scoredCardsResp)
     }
   }

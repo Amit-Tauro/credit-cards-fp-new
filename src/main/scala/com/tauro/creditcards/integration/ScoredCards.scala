@@ -14,15 +14,15 @@ import org.http4s.client.middleware.ResponseLogger
 
 import scala.util.Properties.envOrElse
 
-class ScoredCards[F[_]: Async](client: Client[F]) extends CreditCardGateway[F] {
+class ScoredCards[F[_]: Async, A](client: Client[F]) extends CreditCardGateway[F, A] {
   val dsl = new Http4sClientDsl[F]{}
   import dsl._
 
   private val clientWithLogging = ResponseLogger(true, true)(client)
 
-  override def fetch(req: CreditCardRequest): F[Either[GatewayError, List[GatewayResponse]]] = {
+  override def fetch(req: CreditCardRequest)(implicit entityDecoder: EntityDecoder[F, List[A]]): F[Either[GatewayError, List[A]]] = {
     val scoredCardsReq: Request[F] = POST(getScoredCardsEndpoint).withEntity(ScoredCardsRequest(req.name, req.creditScore, req.salary))
-    clientWithLogging.expect[List[ScoredCardsResponse]](scoredCardsReq).attempt.map(_.leftMap(e => ScoredCardError(e)))
+    clientWithLogging.expect[List[A]](scoredCardsReq).attempt.map(_.leftMap(e => ScoredCardError(e)))
   }
 
   private def getScoredCardsEndpoint: Uri = {

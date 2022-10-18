@@ -13,16 +13,16 @@ import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder
 import org.http4s.client.middleware.ResponseLogger
 import scala.util.Properties.envOrElse
 
-class CsCards[F[_]: Async](client: Client[F]) extends CreditCardGateway[F] {
+class CsCards[F[_]: Async, A](client: Client[F]) extends CreditCardGateway[F, A] {
   val dsl = new Http4sClientDsl[F]{}
   import dsl._
 
   private val clientWithLogging = ResponseLogger(true, true)(client)
 
 
-  override def fetch(req: CreditCardRequest): F[Either[GatewayError, List[GatewayResponse]]] = {
+  override def fetch(req: CreditCardRequest)(implicit entityDecoder: EntityDecoder[F, List[A]]): F[Either[GatewayError, List[A]]] = {
     val csCardsReq: Request[F] = POST(getCsCardsEndpoint).withEntity(CsCardRequest(req.name, req.creditScore))
-    clientWithLogging.expect[List[CsCardResponse]](csCardsReq).attempt.map(_.leftMap(e => CsCardError(e)))
+    clientWithLogging.expect[List[A]](csCardsReq).attempt.map(_.leftMap(e => CsCardError(e)))
   }
 
   private def getCsCardsEndpoint: Uri = {
