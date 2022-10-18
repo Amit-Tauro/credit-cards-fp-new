@@ -3,6 +3,7 @@ package com.tauro.creditcards
 import cats.effect.{Async, Resource}
 import cats.syntax.all._
 import com.comcast.ip4s._
+import com.tauro.creditcards.integration.{CsCards, ScoredCards}
 import fs2.Stream
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
@@ -14,8 +15,10 @@ object CreditcardsServer {
   def stream[F[_]: Async]: Stream[F, Nothing] = {
     for {
       client <- Stream.resource(EmberClientBuilder.default[F].build)
-      creditCardGateway = new CreditCardGatewayImpl[F](client)
-      creditCardService = new CreditCardServiceImpl[F](creditCardGateway)
+      csCards = new CsCards[F](client)
+      scoredCards = new ScoredCards[F](client)
+      transformerService = new TransformerServiceImpl
+      creditCardService = new CreditCardServiceImpl[F](csCards, scoredCards, transformerService)
       creditCardRoutes = new CreditCardsRoutes[F](creditCardService)
 
       // Combine Service Routes into an HttpApp.

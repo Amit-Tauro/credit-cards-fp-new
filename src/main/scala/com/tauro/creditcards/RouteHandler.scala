@@ -11,7 +11,7 @@ class RouteHandler[F[_] : Concurrent] extends Http4sDsl[F] {
   private val errorHandler: PartialFunction[Throwable, F[Response[F]]] = {
     case _: InvalidMessageBodyFailure => BadRequest()
     case _: MalformedMessageBodyFailure => BadRequest()
-    case GatewayError(msg) => InternalServerError(msg)
+    case CreditCardApiError(msg) => InternalServerError(msg)
     case _ => InternalServerError()
   }
 

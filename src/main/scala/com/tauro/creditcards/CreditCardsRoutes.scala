@@ -2,7 +2,7 @@ package com.tauro.creditcards
 
 import cats.effect.Concurrent
 import cats.implicits._
-import com.tauro.creditcards.CreditCardProtocol._
+import com.tauro.creditcards.model.CreditCardProtocol._
 import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
 import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
